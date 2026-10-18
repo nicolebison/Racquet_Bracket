@@ -150,6 +150,8 @@ table.ladder{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nu
 .ladder td.tm b{font-weight:650;display:block;line-height:1.25}
 .ladder td.tm small{color:var(--muted);font-size:12px}
 .ladder td.pts{font-weight:800;font-size:16px}
+.gd{font-weight:500;font-size:13px;color:var(--muted);margin-left:2px}
+.ladder th .gd{font-size:11px;letter-spacing:.04em;text-transform:none}
 .ladder tr.cut td{padding:0;border-bottom:0}
 .ladder tr.cut div{display:flex;justify-content:space-between;gap:10px;padding:5px 12px;background:var(--bug);color:var(--bug-ink);font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase}
 .ladder tr.cut span:first-child{color:var(--ball)}
@@ -211,6 +213,8 @@ body.editing main .in{padding-bottom:110px}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom,0px));z-index:30;background:var(--ink);color:var(--bg);padding:9px 16px;border-radius:8px;font-size:14px;max-width:min(92vw,520px);box-shadow:0 6px 20px rgba(0,0,0,.25)}
 
 @media (max-width:760px){
+  .ladder th{white-space:normal;width:1%}
+  .ladder th.tl{width:auto}
   .cols{grid-template-columns:minmax(0,1fr)}
   .hide-sm{display:none}
   .band{background-position:right -180px center}
@@ -825,18 +829,17 @@ body.editing main .in{padding-bottom:110px}
   function viewLadder() {
     var lad = computeLadder(state), complete = groupComplete(state);
     var any = state.matches.some(played), draws = lad.some(function (r) { return r.d > 0; });
-    var cols = draws ? 8 : 7;
+    var cols = 4;
     var h = '<div class="toolbar"><h2 style="font-size:22px;font-stretch:120%">Ladder</h2><span class="hint">' +
       (complete ? 'Phase one finished. These are the finals seeds.' : any ? 'Live from the ' + state.matches.filter(played).length + ' results so far.' : 'No results yet. The ladder fills in as scores are entered.') + '</span></div>';
-    h += '<div class="tablewrap"><table class="ladder"><thead><tr><th>#</th><th class="tl">Team</th><th>P</th><th>W</th>' + (draws ? '<th>D</th>' : '') +
-      '<th>L</th><th>Games won</th><th class="hide-sm">Games lost</th></tr></thead><tbody>';
+    h += '<div class="tablewrap"><table class="ladder"><thead><tr><th>#</th><th class="tl">Team</th><th>Matches won</th><th>Games won <span class="gd">(diff)</span></th></tr></thead><tbody>';
     lad.forEach(function (r) {
       var chip = '';
       if (complete && (r.tiedPrev || r.tiedNext)) chip = (state.toss || []).length ? '<span class="chip">coin toss</span>' : '<span class="chip">needs coin toss</span>';
       var sw = editing && complete && r.tiedNext ? '<button class="swap" data-swap="' + r.pos + '" type="button">Swap with #' + (r.pos + 1) + '</button>' : '';
       h += '<tr class="' + (filter === r.t.id ? 'me' : '') + '"><td class="pos">' + r.pos + '</td><td class="tl tm"><b>' + esc(r.t.name) + chip + sw + '</b><small>' + esc(r.t.players) + '</small></td>' +
-        '<td>' + r.p + '</td><td class="pts">' + r.w + '</td>' + (draws ? '<td>' + r.d + '</td>' : '') + '<td>' + r.l + '</td>' +
-        '<td>' + r.gf + '</td><td class="hide-sm">' + r.ga + '</td></tr>';
+        '<td class="pts">' + r.w + '</td>' +
+        '<td class="pts">' + r.gf + ' <span class="gd">' + (r.diff > 0 ? '+' : r.diff < 0 ? '−' : '±') + Math.abs(r.diff) + '</span></td></tr>';
       if (r.pos === 5) h += '<tr class="cut"><td colspan="' + cols + '"><div><span>↑ Bye to the quarterfinals</span><span>↓ Play-off round</span></div></td></tr>';
     });
     h += '</tbody></table></div>';
