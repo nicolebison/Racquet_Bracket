@@ -901,7 +901,7 @@ body.editing main .in{padding-bottom:110px}
     var champ = fin.F.winner ? team(fin.F.winner.id) : null;
     var ph = phaseInfo();
     var st = '<p class="tagline">“Let’s keep it clean”</p>' + (champ ? '<span class="pill ball">Champions: ' + esc(champ.name) + '</span>' :
-      '<span class="pill"><span class="meter"><b style="width:' + Math.round(done / total * 100) + '%"></b></span>' + done + ' of ' + total + ' played</span>');
+      '<span class="pill"><span class="meter"><b style="width:' + Math.round(done / total * 100) + '%"></b></span>' + done + ' of ' + total + ' matches played</span>');
     var tabs = TABS.map(function (t) { return '<button class="tab" role="tab" type="button" id="tab-' + t[0] + '" data-tab="' + t[0] + '" aria-selected="' + (tab === t[0]) + '">' + t[1] + '</button>'; }).join('');
     var org = canEdit && !saved.sheet ? '<button class="orgbtn' + (editing ? ' on' : '') + '" id="orgbtn" type="button">' + (editing ? 'Done editing' : 'Enter scores') + '</button>' : '';
     return '<header class="band"><div class="in"><div class="brand"><h1>Racquet Bracket<i></i></h1></div>' +
