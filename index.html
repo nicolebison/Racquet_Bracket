@@ -812,12 +812,11 @@ body.editing main .in{padding-bottom:110px}
     }).join('');
     var ph = phaseInfo();
     var h = '<div class="toolbar"><div><label for="flt">Show</label><select id="flt">' + opts + '</select></div>' +
-      '<span class="hint">' + (editing ? 'Type the games each team won (6–0 up to 6–5), then press Save. Matches still to play are below the results.' : 'Every result so far, then the ladder. Fixtures are on the Round robin tab.') + '</span></div>';
+      '<span class="hint">' + (editing ? 'Type the games each team won (6–0 up to 6–5), then press Save. Matches still to play are below the results.' : '') + '</span></div>';
     if (restoreNote && editing) h += '<p class="notice warn"><b>Your unsaved scores were kept.</b> Someone else saved while you were editing. Check the scores below, then press Save.</p>';
     var ms = filter ? state.matches.filter(function (m) { return m.a === filter || m.b === filter; }) : state.matches;
     var todo = ms.filter(function (m) { return !played(m); }), done = ms.filter(played);
     var when = ph.before ? 'Starts in ' + plural(ph.daysToStart, 'day') : ph.days === null ? '' : ph.days >= 0 ? plural(ph.days, 'day') + ' left' : 'Finished';
-    h += '<p class="notice"><b>Phase one: ' + esc(ph.label) + '.</b> ' + (filter ? esc(team(filter).name) + ' have played ' + done.length + ' of 4.' : state.matches.filter(played).length + ' of ' + state.matches.length + ' matches played.') + (when ? ' ' + when + '.' : '') + '</p>';
     h += '<div class="rounds">';
     h += '<section class="round"><div class="round-h"><h2>Results</h2><span class="dates">' + done.length + '</span></div>' +
       (done.length ? '<div class="bugs">' + done.map(matchBug).join('') + '</div>' : '<p class="resting">No results yet. Scores appear here as matches are played.</p>') + '</section>';
@@ -910,7 +909,7 @@ body.editing main .in{padding-bottom:110px}
       '<span class="pill">Phase one · ' + esc(ph.label) + '</span><span class="pill"><span class="meter"><b style="width:' + Math.round(done / total * 100) + '%"></b></span>' + done + ' of ' + total + ' played</span>';
     var tabs = TABS.map(function (t) { return '<button class="tab" role="tab" type="button" id="tab-' + t[0] + '" data-tab="' + t[0] + '" aria-selected="' + (tab === t[0]) + '">' + t[1] + '</button>'; }).join('');
     var org = canEdit && !saved.sheet ? '<button class="orgbtn' + (editing ? ' on' : '') + '" id="orgbtn" type="button">' + (editing ? 'Done editing' : 'Enter scores') + '</button>' : '';
-    return '<header class="band"><div class="in"><div class="brand"><h1>Racquet Bracket<i></i></h1><p>Doubles · ' + state.teams.length + ' teams · two-month phase one · finals day</p></div>' +
+    return '<header class="band"><div class="in"><div class="brand"><h1>Racquet Bracket<i></i></h1></div>' +
       '<div class="status">' + st + '</div><div class="tabbar"><nav class="tabs" role="tablist" aria-label="Sections">' + tabs + '</nav>' + org + '</div></div></header>';
   }
 
