@@ -62,7 +62,8 @@ main .in{padding-block:24px 40px;display:grid;gap:22px}
 h2,h3{font-family:var(--display);margin:0;line-height:1.2;text-wrap:balance}
 .eyebrow{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
 .lede{margin:0;color:var(--muted);max-width:68ch}
-.notice{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:10px 14px;font-size:14px;color:var(--muted);max-width:100%}
+.notice{margin:0;font-size:15px;color:var(--ink);max-width:80ch}
+.notice.howto,.notice.warn{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:10px 14px;font-size:14px;color:var(--muted);max-width:100%}
 .notice b{color:var(--ink)}
 .notice.warn{border-color:transparent;background:var(--warn-bg);color:var(--warn)}
 .notice.warn b{color:inherit}
@@ -172,7 +173,7 @@ table.ladder{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nu
 .champ b{font-family:var(--display);font-stretch:120%;font-weight:850;font-size:20px;line-height:1.15;text-wrap:balance}
 .champ i{display:block;width:18px;height:18px;border-radius:50%;background:var(--ball);box-shadow:0 0 0 1px var(--ball-edge),inset -3px -3px 0 rgba(0,0,0,.12)}
 .oop{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:10px}
-.oop div{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:10px 14px;display:grid;gap:2px}
+.oop div{display:grid;gap:2px;padding-left:12px;border-left:3px solid var(--line-strong)}
 .oop b{font-size:14px}
 .oop span{font-size:13px;color:var(--muted)}
 
@@ -534,7 +535,8 @@ body.editing main .in{padding-bottom:110px}
   }
  ],
  "finals": {},
- "toss": []
+ "toss": [],
+ "sheet": ""
 }</script>
 <script id="rb-app">
 (function () {
@@ -904,7 +906,7 @@ body.editing main .in{padding-bottom:110px}
       complete ? '<span class="pill ball">Finals day</span><span class="pill">Seeds locked</span>' :
       '<span class="pill">Phase one · ' + esc(ph.label) + '</span><span class="pill"><span class="meter"><b style="width:' + Math.round(done / total * 100) + '%"></b></span>' + done + ' of ' + total + ' played</span>';
     var tabs = TABS.map(function (t) { return '<button class="tab" role="tab" type="button" id="tab-' + t[0] + '" data-tab="' + t[0] + '" aria-selected="' + (tab === t[0]) + '">' + t[1] + '</button>'; }).join('');
-    var org = canEdit ? '<button class="orgbtn' + (editing ? ' on' : '') + '" id="orgbtn" type="button">' + (editing ? 'Done editing' : 'Enter scores') + '</button>' : '';
+    var org = canEdit && !saved.sheet ? '<button class="orgbtn' + (editing ? ' on' : '') + '" id="orgbtn" type="button">' + (editing ? 'Done editing' : 'Enter scores') + '</button>' : '';
     return '<header class="band"><div class="in"><div class="brand"><h1>Racquet Bracket<i></i></h1><p>Doubles · ' + state.teams.length + ' teams · two-month phase one · finals day</p></div>' +
       '<div class="status">' + st + '</div><div class="tabbar"><nav class="tabs" role="tablist" aria-label="Sections">' + tabs + '</nav>' + org + '</div></div></header>';
   }
@@ -920,7 +922,7 @@ body.editing main .in{padding-bottom:110px}
     var bar = editing ? '<div class="savebar"><div class="in"><p>' + (n ? '<b>' + plural(n, 'unsaved change') + '</b> <span>Saving updates the page for everyone.</span>' : 'Editing. <span>Type games won into the score boxes.</span>') + '</p>' +
       '<div class="acts"><button class="btn" id="discard" type="button"' + (n && !saving ? '' : ' disabled') + '>Discard</button><button class="btn pri" id="save" type="button"' + (n && !saving ? '' : ' disabled') + '>' + (saving ? 'Saving…' : 'Save') + '</button></div></div></div>' : '';
     app.innerHTML = header() + '<main><div class="in" role="tabpanel" aria-labelledby="tab-' + tab + '">' + view + '</div></main>' +
-      '<footer><div class="in"><span>' + esc(upd) + '</span>' + orgLink + '</div></footer>' + bar +
+      '<footer><div class="in"><span>' + esc(saved.sheet ? sheetNote : upd) + '</span>' + orgLink + '</div></footer>' + bar +
       (toastMsg ? '<div class="toast" role="status">' + esc(toastMsg) + '</div>' : '');
     document.body.classList.toggle('editing', editing);
     if (actId) { var el = document.getElementById(actId); if (el && el !== document.activeElement) { el.focus({ preventScroll: true }); try { if (selS !== null) el.setSelectionRange(selS, selE); } catch (e) {} } }
@@ -991,9 +993,70 @@ body.editing main .in{padding-bottom:110px}
   }
   window.addEventListener('hashchange', function () { var t = tabFromHash(); if (t && t !== tab) { tab = t; render(); } });
 
+
+  // ---------- live scores from a published Google Sheet (CSV) ----------
+  var sheetNote = '';
+  var FINAL_LABELS = { 'play-off 8 v 9': 'P1', 'play-off 6 v 11': 'P2', 'play-off 7 v 10': 'P3', 'qf 1': 'Q1', 'qf 2': 'Q2', 'qf 3': 'Q3', 'qf 4': 'Q4', 'semi 1': 'S1', 'semi 2': 'S2', 'final': 'F' };
+  function norm(x) { return String(x || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim(); }
+  function parseCSV(text) {
+    var rows = [], row = [], cur = '', q = false;
+    for (var i = 0; i < text.length; i++) {
+      var c = text[i];
+      if (q) { if (c === '"') { if (text[i + 1] === '"') { cur += '"'; i++; } else q = false; } else cur += c; }
+      else if (c === '"') q = true;
+      else if (c === ',') { row.push(cur); cur = ''; }
+      else if (c === '\n' || c === '\r') { if (c === '\r' && text[i + 1] === '\n') i++; row.push(cur); rows.push(row); row = []; cur = ''; }
+      else cur += c;
+    }
+    if (cur !== '' || row.length) { row.push(cur); rows.push(row); }
+    return rows;
+  }
+  function applySheet(rows) {
+    var head = rows.shift().map(norm);
+    var col = function (name) { return head.indexOf(name); };
+    var cM = col('match'), cA = col('team a'), cB = col('team b'), cSA = col('team a games'), cSB = col('team b games');
+    if (cA < 0 || cB < 0 || cSA < 0 || cSB < 0) throw new Error('Sheet columns not found');
+    var byName = {}; state.teams.forEach(function (t) { byName[norm(t.name)] = t.id; });
+    var num = function (v) { v = String(v || '').trim(); if (!/^\d{1,2}$/.test(v)) return null; return parseInt(v, 10); };
+    var finalsIn = {};
+    state.matches.forEach(function (m) { m.sa = null; m.sb = null; });
+    rows.forEach(function (r) {
+      var a = byName[norm(r[cA])], b = byName[norm(r[cB])], sa = num(r[cSA]), sb = num(r[cSB]);
+      var fid = null;
+      if (cM >= 0) { var k = norm(r[cM]); Object.keys(FINAL_LABELS).forEach(function (lab) { if (norm(lab) === k) fid = FINAL_LABELS[lab]; }); }
+      if (fid) { if (sa !== null && sb !== null) finalsIn[fid] = { sa: sa, sb: sb }; return; }
+      if (!a || !b || sa === null || sb === null) return;
+      state.matches.forEach(function (m) {
+        if (m.a === a && m.b === b) { m.sa = sa; m.sb = sb; }
+        else if (m.a === b && m.b === a) { m.sa = sb; m.sb = sa; }
+      });
+    });
+    state.finals = {};
+    if (groupComplete(state)) {
+      FINALS.forEach(function (f) {
+        var x = finalsIn[f.id]; if (!x) return;
+        var fin = computeFinals(state, computeLadder(state), true)[f.id];
+        if (fin.A.id && fin.B.id) state.finals[f.id] = { a: fin.A.id, b: fin.B.id, sa: x.sa, sb: x.sb };
+      });
+    }
+  }
+  function loadSheet() {
+    var url = saved.sheet; if (!url) return;
+    fetch(url + (url.indexOf('?') < 0 ? '?' : '&') + 't=' + Date.now(), { cache: 'no-store' })
+      .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); })
+      .then(function (txt) {
+        applySheet(parseCSV(txt));
+        saved = clone(state);
+        sheetNote = 'Scores update live from the organisers’ sheet. Loaded ' + new Date().toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' }) + '.';
+        render();
+      })
+      .catch(function () { sheetNote = 'Couldn’t reach the score sheet just now, so these may not be the latest scores. Refresh to try again.'; render(); });
+  }
+
   // ---------- boot ----------
   checkStash();
   render();
+  loadSheet();
   if (window.claude && typeof window.claude.use === 'function') {
     Promise.all([window.claude.use('artifact'), window.claude.use('user')]).then(function (res) {
       artifactNs = res[0];
